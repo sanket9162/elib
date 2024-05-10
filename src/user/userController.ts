@@ -43,7 +43,7 @@ const creatUSer = async (req: Request, res: Response, next: NextFunction) => {
     const token = sign({ sub: newUser._id }, config.jwtSecret as string, {
       expiresIn: "7d",
     });
-    res.json({
+    res.status(201).json({
       _accessToken: token,
     });
   } catch (error) {
@@ -51,4 +51,33 @@ const creatUSer = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { creatUSer };
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return next(createHttpError(400, "All fields are required"));
+  }
+
+  const user = await userModel.findOne({ email });
+
+  if (!user) {
+    return next(createHttpError(404, "user not found."));
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return next(createHttpError(400, "username or password incorrect"));
+  }
+
+  const token = sign({ sub: user._id }, config.jwtSecret as string, {
+    expiresIn: "7d",
+    algorithm: "HS256",
+  });
+
+  res.json({
+    accessToken: token,
+  });
+};
+
+export { creatUSer, loginUser };
